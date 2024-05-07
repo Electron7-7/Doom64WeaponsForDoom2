@@ -605,6 +605,8 @@ Class BFGBall64 : BFGBall
 {
 	/* DOOM64 Changed Stats
 		Speed: 700 u/s
+		----
+		See the Rocket64 class for info on how I implement the horizontal spawn offset
 	*/
 	Default
 	{
@@ -615,6 +617,9 @@ Class BFGBall64 : BFGBall
 	States
 	{
 		Spawn:
+			TNT1 A 1;
+			Goto SpawnLoop;
+		SpawnLoop:
 			NBFB AB 4 Bright;
 			Loop;
 		Death:
