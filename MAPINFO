@@ -1,0 +1,28 @@
+GameInfo
+{
+	playerclasses = "DoomPlayer64"
+	AddEventHandlers = "Doom64Handler"
+}
+
+DoomEdNums
+{
+	8000 = Fist64
+	8001 = Pistol64
+	8002 = Chainsaw64
+	8003 = Shotgun64
+	8004 = SuperShotgun64
+	8005 = Chaingun64
+	8006 = RocketLauncher64
+	8007 = PlasmaRifle64
+	8008 = BFG900064
+	8009 = Rocket64
+	8010 = Rocket64Explosion
+	8011 = Rocket64SmokeTrail
+	8012 = PlasmaBall64
+	8013 = BFGBall64
+	8014 = BFGExtra64
+	6661 = DemonKeyOrange
+	6662 = DemonKeyCyan
+	6663 = DemonKeyPurple
+	6666 = Unmaker
+}

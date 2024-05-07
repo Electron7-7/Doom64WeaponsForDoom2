@@ -1,0 +1,2 @@
+server HandlerClass(WeaponReplacerHandler) bool doom64_replace = true;
+server bool doom64_plasma_rifle_annoying = true;
