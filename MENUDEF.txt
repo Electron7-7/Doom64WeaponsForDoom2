@@ -1,0 +1,23 @@
+OptionValue "Doom64WeaponReplace"
+{
+	0, "$D64_KEEP"
+	1, "$D64_REPLACE"
+}
+
+OptionValue "Doom64PlasmaRifleAnnoying"
+{
+	0, "$D64_PLASMA_CHILL"
+	1, "$D64_PLASMA_ANNOYING"
+}
+
+OptionMenu "Doom64Options"
+{
+	Title "Doom64 Options"
+ 	Option "$D64_OPTIONS_REPLACE", "doom64_replace", "Doom64WeaponReplace"
+	Option "$D64_OPTIONS_PLASMA_ANNOYING", "doom64_plasma_rifle_annoying", "Doom64PlasmaRifleAnnoying"
+}
+
+AddListMenu "MainMenu" before "OptionsMenu"
+{
+	PatchItem "M_MOPTS3", "", "Doom64Options"
+}
