@@ -1,4 +1,4 @@
-![cover](https://github.com/Electron7-7/Doom64WeaponsForDoom2/assets/26826460/630962bd-a01f-4645-ab76-ee764caa3248)
+<a href="https://www.moddb.com/mods/doom64-weapons-for-doom-2" title="View Doom64 Weapons for Doom 2 on ModDB" target="_blank"><img src="https://button.moddb.com/rating/medium/mods/62063.png" alt="Doom64 Weapons for Doom 2" /></a>
 # Doom 64 Weapons for Doom 2
 What it says on the tin: Doom 64 weapons remade for Doom 2
 ## Installation
