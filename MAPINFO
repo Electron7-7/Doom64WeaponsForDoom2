@@ -2,6 +2,7 @@ GameInfo
 {
 	playerclasses = "DoomPlayer64"
 	AddEventHandlers = "Doom64Handler"
+// 	AddEventHandlers = "InfoUIHandler"
 }
 
 DoomEdNums

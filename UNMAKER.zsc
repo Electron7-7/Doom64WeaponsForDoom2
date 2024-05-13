@@ -1,0 +1,364 @@
+Class Unmaker : Weapon
+{
+	/* Stats
+		Ammo Type: Cells
+
+		Level 0
+			Damage: 10-80 dmg
+			Time Between Shots: 8 tics
+			Rate of Fire: 225 s/m
+			Range: 4096 u
+
+		Level 1
+			Time Between Shots: 5 tics
+			Rate of Fire: 360 s/m
+
+		Level 2
+			Time Between Shots: 4 tics
+			Rate of Fire: 450 s/m (per laser)
+			+1 Laser (doubling RoF to 900 s/m)
+			Each laser has a 2 deg offset and each are affected by autoaim (but stay static otherwise)
+
+		Level 3
+			1 Laser (RoF is now 1350 s/m since three lasers fire every cycle)
+			One laser stays in the center while the other two fan outwards
+			The lasers each autoaim but appear to "merge" into one laser when the target distance is too small
+			The spread pattern fires the first side lasers at a 3 deg offset, the second pair at 6 deg, the third at 9 deg, the fourth is 12 deg, and then it loops back to 3 deg
+	*/
+
+	Default
+	{
+		Tag "Doom64 Unmaker";
+		Inventory.PickupSound "inventory/weapons64/up";
+		Inventory.PickupMessage "$D64_PICKUP_UNMAKER";
+		+Weapon.BFG
+		Weapon.AmmoUse 1;
+		Weapon.SlotNumber 8;
+		Weapon.AmmoGive 40;
+		Weapon.AmmoType "Cell";
+		Obituary "$D64_UNMAKER_OBITUARY";
+	}
+
+	States
+	{
+		Spawn:
+			UNMT A -1;
+			Stop;
+		Ready:
+			UNMG A 1 A_WeaponReady;
+			Loop;
+		Select:
+			UNMG A 1 A_Raise;
+			Loop;
+		Deselect:
+			UNMG A 1 A_Lower;
+			Loop;
+		Flash:
+			UNMF A 2 A_Light2;
+			Goto LightDone;
+		Fire:
+			UNMG A 0
+			{
+				A_Overlay(PSP_FLASH, "Flash");
+				A_StartSound("weapons64/unmakerf", CHAN_WEAPON, CHANF_OVERLAP);
+				switch(DoomPlayer64(self).UnmakerLevel)
+				{
+					case 1:
+						return ResolveState("LevelOne");
+					case 2:
+						return ResolveState("LevelTwo");
+					case 3:
+						return ResolveState("LevelThree");
+				}
+				return ResolveState(null);
+			}
+			UNMG A 9 A_FireUnmakerLaser();
+			UNMG A 9 A_ReFire;
+			Goto Ready;
+		LevelOne:
+			UNMG A 6
+			{
+				A_FireUnmakerLaser();
+			}
+			UNMG A 6 A_ReFire;
+			Goto Ready;
+		LevelTwo:
+			UNMG A 5
+			{
+				A_FireUnmakerLaser(-2.0);
+				A_FireUnmakerLaser(2.0);
+			}
+			UNMG A 5 A_ReFire;
+			Goto Ready;
+		LevelThree:
+			UNMG A 5
+			{
+				A_FireUnmakerLaser(-3.0);
+				A_FireUnmakerLaser();
+				A_FireUnmakerLaser(3.0);
+			}
+			UNMG A 5 A_ReFire("LevelThree2");
+			Goto Ready;
+		LevelThree2:
+			UNMG A 4
+			{
+				A_StartSound("weapons64/unmakerf", CHAN_WEAPON, CHANF_OVERLAP);
+				A_FireUnmakerLaser(-6.0);
+				A_FireUnmakerLaser();
+				A_FireUnmakerLaser(6.0);
+			}
+			UNMG A 4 A_ReFire("LevelThree3");
+			Goto Ready;
+		LevelThree3:
+			UNMG A 5
+			{
+				A_StartSound("weapons64/unmakerf", CHAN_WEAPON, CHANF_OVERLAP);
+				A_FireUnmakerLaser(-9.0);
+				A_FireUnmakerLaser();
+				A_FireUnmakerLaser(9.0);
+			}
+			UNMG A 5 A_ReFire("LevelThree4");
+			Goto Ready;
+		LevelThree4:
+			UNMG A 4
+			{
+				A_StartSound("weapons64/unmakerf", CHAN_WEAPON, CHANF_OVERLAP);
+				A_FireUnmakerLaser(-12.0);
+				A_FireUnmakerLaser();
+				A_FireUnmakerLaser(12.0);
+			}
+			UNMG A 4 A_ReFire;
+			Goto Ready;
+		Flash:
+			UNMF A 2 A_Light2;
+			Goto LightDone;
+	}
+
+	action void A_FireUnmakerLaser(double laser_angle = 0.0)
+	{
+		int u_ttl = 2;
+		double view_offset = player.viewheight - 8;
+		FTranslatedLineTarget u_target;
+
+		invoker.DepleteAmmo(invoker.bAltFire);
+
+		double u_pitch = AimLineAttack(self.angle + laser_angle, 4096, null, flags: ALF_FORCENOSMART|ALF_CHECK3D);
+		let [u_puff, int] = LineAttack(self.angle + laser_angle, 4096, u_pitch, 0, "Hitscan", "UnmakerSpark", LAF_NOINTERACT|LAF_NORANDOMPUFFZ, u_target);
+
+		double u_laser_pitch = -PitchTo(u_puff, view_offset, u_puff.height/2);
+
+		if(u_target.linetarget)
+		{
+			int u_damage = 10 * Random(1, 8);
+			int u_new_damage = u_target.linetarget.DamageMobj(self, self, u_damage, "Hitscan");
+			u_target.linetarget.TraceBleed(u_new_damage > 0 ? u_new_damage : u_damage, self);
+		}
+
+ 		for(let i = 0 ; i < Distance3D(u_puff) ; i += 16)
+		{
+			double u_length = i * cos(u_laser_pitch);
+			double u_height = i * sin(u_laser_pitch) + view_offset;
+			double u_offset = i * tan(laser_angle);
+
+			let [bool, u_laser] = A_SpawnItemEx("UnmakerLaser", u_length, u_offset, u_height);
+			u_laser.pitch = -u_laser_pitch;
+			u_laser.angle = angle - laser_angle;
+			u_laser.roll = 90;
+			UnmakerLaser(u_laser).l_ttl = u_ttl;
+
+			[bool, u_laser] = A_SpawnItemEx("UnmakerLaser", u_length, u_offset, u_height);
+			u_laser.pitch = 90;
+			u_laser.angle = (angle + 90) - laser_angle;
+			u_laser.roll = -u_laser_pitch;
+			UnmakerLaser(u_laser).l_ttl = u_ttl;
+
+			u_ttl += 2;
+		}
+	}
+}
+
+/*
+	This is an eventhandler I wrote to display the player's current orientation.
+	I used this with the other code I wrote that let me rotate the lasers with
+	my keyboard, so I'm leaving it here in case you want to un-comment it and
+	mess around. Just make sure to also uncomment the line in the MAPINFO lump
+	so this handler gets loaded in.
+*/
+/* Class InfoUIHandler : EventHandler
+{
+	override void RenderOverlay(RenderEvent event)
+	{
+		PlayerPawn pawn = players[consoleplayer].mo;
+		Statusbar.BeginHUD();
+		HUDFont myfont = HUDFont.Create(smallfont);
+
+		String outputString = String.Format("Pitch: %.2f Angle: %.2f", pawn.pitch, pawn.angle);
+
+		Statusbar.DrawString(myfont, outputString, (300, 5), Statusbar.DI_SCREEN_TOP|Statusbar.DI_TEXT_ALIGN_LEFT, Font.CR_BRICK);
+	}
+}*/
+
+Class UnmakerLaser : Actor
+ {
+	int l_ttl;
+
+	Property TimeToLive: l_ttl;
+
+	Default
+	{
+		UnmakerLaser.TimeToLive 2;
+		+NOGRAVITY
+		+FLATSPRITE
+ 		+ROLLSPRITE
+		RenderStyle "Normal";
+		Alpha 1.0;
+		Radius 8;
+		Height 2;
+	}
+
+	States
+	{
+		Spawn:
+			BOLT A -1 Bright;
+// 			TEST A -1 Bright;
+			Loop;
+		Die:
+			TNT1 A -1;
+			Stop;
+	}
+
+	override void Tick()
+	{
+		let [u_height, u_ceil] = curSector.HighestCeilingAt((Pos.X+16, Pos.Y+16));
+		if(Pos.Z+16 > u_height)
+		{
+			Destroy();
+			return;
+		}
+
+ 		l_ttl -= 4;
+		if(l_ttl <= 0)
+		{
+			Destroy();
+		}
+		super.Tick();
+		/*
+			This is the code I wrote to help me test the laser orientation!
+			It was really difficult to figure out what values to assign to
+			the pitch, rotation, and roll specifically for the lasers that are
+			"standing up" and facing the side, and having to put in a value,
+			launch the game, load the map, give myself the weapon, hit fire, see
+			it's still broken, and then try and figure out why was not going to work.
+
+			Instead, I wrote this code here that takes in certain inputs and
+			rotates the laser along a certain axis when a certain key is pressed.
+			This made debugging waaaaaaaay easier, as all I needed was a few measurements
+			and Desmos took care of the rest. I plotted the points in a table and
+			once I stepped back and looked at the data, I almost immediately noticed
+			that the pitch stayed at 90, and that the roll was literally just the
+			player's view pitch. The correlations were all linear which was suprising
+			to me, but in hindsight makes sense (I was overcomplicating things again).
+			The angle was just the player's view angle plus 90 (although, I had to
+			use a modulo on the player angle to keep it between 0 and 360 degrees)
+
+			I'm leaving this in here for anyone that wants to play around with it;
+			you'll probably want to comment out the l_ttl -= 2; line so you can see
+			the lasers, lol.
+
+			The controls you assign keys to in-game are the "Weapon State #" ones.
+			Weapon State 1 is BT_USER1 and so on and so forth.
+
+			Holding your "run" key speeds up the turning and in order to change
+			the roll, you have to hold the "strafe" key.
+
+			Also, if you hit your "use" key, you'll get a printout of the laser's
+			orientation (but it happens every frame so unless you want to see it
+			live-update and also flood your console, try not to hold it down)
+		*/
+
+		/* let player = players[consoleplayer];
+
+		double rotation_amount = 1.0;
+		if(player.cmd.buttons & BT_RUN) { rotation_amount = 0.1; }
+
+		if(player.cmd.buttons & BT_USER1)
+		{
+			pitch += rotation_amount;
+		}
+
+		if(player.cmd.buttons & BT_USER2)
+		{
+			pitch -= rotation_amount;
+		}
+
+		if(player.cmd.buttons & BT_STRAFE)
+		{
+			if (player.cmd.buttons & BT_USER3)
+			{
+				roll += rotation_amount;
+			}
+
+			if (player.cmd.buttons & BT_USER4)
+			{
+				roll -= rotation_amount;
+			}
+			return;
+		}
+
+		if(player.cmd.buttons & BT_USER3)
+		{
+			angle += rotation_amount;
+		}
+
+		if(player.cmd.buttons & BT_USER4)
+		{
+			angle -= rotation_amount;
+		}
+
+		if(player.cmd.buttons & BT_USE)
+		{
+			A_Log("Laser Pitch: "..pitch.."\nLaser Angle: "..angle.."\nLaser Roll: "..roll.."\n");
+		} */
+	}
+ }
+
+Class UnmakerSpark : Actor
+{
+	Default
+	{
+		+NOGRAVITY
+		+NOBLOCKMAP
+		+WALLSPRITE
+		+ZDOOMTRANS
+		+PUFFONACTORS
+		+ALWAYSPUFF
+		RenderStyle "Translucent";
+		Alpha 0.9;
+		Radius 8;
+		Height 16;
+	}
+
+	States
+	{
+		Spawn:
+			LASS AB 5 Bright
+			{
+				Alpha -= 3.0;
+			}
+			Goto Die;
+		Die:
+			TNT1 A 0;
+			Stop;
+	}
+
+	override void Tick()
+	{
+		let [u_height, u_ceil] = curSector.HighestCeilingAt((Pos.X, Pos.Y));
+		if(Pos.Z+8 > u_height)
+		{
+			Destroy();
+			return;
+		}
+		super.Tick();
+	}
+}
